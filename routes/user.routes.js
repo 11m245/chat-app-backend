@@ -40,6 +40,8 @@ router.post("/signup", async (request, response) => {
           password: await generateHashedPassword(data.password),
           createdAt: Date.now(),
           isActivated: false,
+          isOnline: false,
+          lastSeen: Date.now(),
         };
 
         const addRes = await addUserInCollection(formattedSignupData);

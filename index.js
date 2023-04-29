@@ -36,8 +36,8 @@ app.get("/", (request, response) => {
 io.on("connection", (socket) => {
   // save every connecting in online users
   console.log(socket.id);
-  socket.on("connection", () => {
-    console.log("socket connection");
+  socket.on("connection", (data) => {
+    console.log("socket connection", data);
   });
   socket.on("userConnection", function (data) {
     console.log(data);
