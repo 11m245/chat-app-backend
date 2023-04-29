@@ -42,6 +42,7 @@ router.post("/signup", async (request, response) => {
           isActivated: false,
           isOnline: false,
           lastSeen: Date.now(),
+          image: data.image ? data.image : null,
         };
 
         const addRes = await addUserInCollection(formattedSignupData);
@@ -131,7 +132,7 @@ router.post("/login", async (req, res) => {
           if (saveLoginTokenRes.insertedId) {
             res.status(200).send({
               message: "Login Successfull",
-              payload: { token: loginToken },
+              payload: { token: loginToken, email: userFromDB.email },
             });
           } else {
             res.status(500).send({ message: "Token Issue" });

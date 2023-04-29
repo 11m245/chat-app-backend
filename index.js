@@ -39,8 +39,17 @@ io.on("connection", (socket) => {
   socket.on("connection", (data) => {
     console.log("socket connection", data);
   });
-  socket.on("userConnection", function (data) {
-    console.log(data);
+  socket.on("chatPage", async function (userMail, callback) {
+    console.log("cp", userMail);
+    const users = await client
+      .db("chatApp")
+      .collection("users")
+      .find(
+        { isActivated: true, email: { $ne: userMail } },
+        { projection: { password: 0, isActivated: 0 } }
+      )
+      .toArray();
+    callback(users);
   });
   socket.on("disconnect", function () {
     console.log("A user disconnected");
