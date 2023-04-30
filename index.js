@@ -33,34 +33,76 @@ app.get("/", (request, response) => {
   response.send("Welcome to Chat API");
 });
 
-io.on("connection", (socket) => {
+const updateOnlineStatus = async (userMail, userStatus, socketId) => {
+  await client
+    .db("chatApp")
+    .collection("users")
+    .updateOne(
+      { isActivated: true, email: userMail },
+      { $set: { isOnline: userStatus, socketId: socketId } }
+    );
+};
+
+const updateOfflineStatus = async (userStatus, socketId) => {
+  await client
+    .db("chatApp")
+    .collection("users")
+    .updateOne(
+      { isActivated: true, socketId: socketId },
+      { $set: { isOnline: userStatus, lastSeen: Date.now() } }
+    );
+};
+
+const getRoomMessages = async (room) => {
+  return await client
+    .db("chatApp")
+    .collection("messages")
+    .find({ to: room })
+    .toArray();
+};
+
+const saveMessage = async (data) => {
+  await client.db("chatApp").collection("messages").insertOne(data);
+};
+
+io.on("connection", async (socket) => {
   // save every connecting in online users
-  console.log(socket.id);
-  socket.on("connection", (data) => {
-    console.log("socket connection", data);
-  });
-  socket.on("chatPage", async function (userMail, callback) {
-    console.log("cp", userMail);
-    const users = await client
+  console.log("a user conn in socket ID", socket.id);
+  socket.on("new_user", async (userMail) => {
+    await updateOnlineStatus(userMail, true, socket.id);
+    const all = await client
       .db("chatApp")
       .collection("users")
       .find(
-        { isActivated: true, email: { $ne: userMail } },
+        { isActivated: true },
         { projection: { password: 0, isActivated: 0 } }
       )
       .toArray();
-    callback(users);
+    // console.log("all", all);
+    socket.emit("updated_users", all);
   });
-  socket.on("disconnect", function () {
-    console.log("A user disconnected");
+
+  socket.on("join_room", async (room) => {
+    socket.join(room);
+    console.log("joined Room", room);
+    socket.emit("room_messages", await getRoomMessages(room));
   });
-  socket.on("connection", function () {
-    console.log("A user disconnected");
+
+  socket.on("message_room", async (data) => {
+    console.log("new message to room", data);
+    await saveMessage(data);
+    io.to(data.to).emit(
+      "receive_room_messages",
+      await getRoomMessages(data.to)
+    );
+    console.log("emited Data room messages", await getRoomMessages(data.to));
   });
-  socket.on("new-user", () => {
-    io.emit("new-user", "hi, new user connected");
+
+  socket.on("disconnect", async function () {
+    console.log("A user disconnected", socket.id);
+    await updateOfflineStatus(false, socket.id);
   });
-  io.emit("check", "checking content");
+
   socket.on("connect_error", (error) => {
     console.log("connection error", error);
   });
