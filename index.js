@@ -33,6 +33,22 @@ app.get("/", (request, response) => {
   response.send("Welcome to Chat API");
 });
 
+app.get("/roomMessages", async (request, response) => {
+  try {
+    const room = request.headers.selectedroom;
+
+    const messages = await getRoomMessages(room);
+    // console.log("messsss", messages);
+    response.send({
+      message: "Messages Updated",
+      payload: { messages: messages },
+    });
+  } catch (err) {
+    console.log("ERROR", err);
+    response.status(500).send({ message: err.message });
+  }
+});
+
 const updateOnlineStatus = async (userMail, userStatus, socketId) => {
   await client
     .db("chatApp")
@@ -67,7 +83,7 @@ const saveMessage = async (data) => {
 
 io.on("connection", async (socket) => {
   // save every connecting in online users
-  console.log("a user conn in socket ID", socket.id);
+  // console.log("a user conn in socket ID", socket.id);
   socket.on("new_user", async (userMail) => {
     await updateOnlineStatus(userMail, true, socket.id);
     const all = await client
@@ -84,22 +100,22 @@ io.on("connection", async (socket) => {
 
   socket.on("join_room", async (room) => {
     socket.join(room);
-    console.log("joined Room", room);
+    // console.log("joined Room", room);
     socket.emit("room_messages", await getRoomMessages(room));
   });
 
   socket.on("message_room", async (data) => {
-    console.log("new message to room", data);
+    // console.log("new message to room", data);
     await saveMessage(data);
     io.to(data.to).emit(
       "receive_room_messages",
       await getRoomMessages(data.to)
     );
-    console.log("emited Data room messages", await getRoomMessages(data.to));
+    // console.log("emited Data room messages", await getRoomMessages(data.to));
   });
 
   socket.on("disconnect", async function () {
-    console.log("A user disconnected", socket.id);
+    // console.log("A user disconnected", socket.id);
     await updateOfflineStatus(false, socket.id);
   });
 
