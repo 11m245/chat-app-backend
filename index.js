@@ -22,7 +22,7 @@ console.log("mongo connected");
 
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
-  cors: { origin: process.env.CLIENT_API },
+  cors: { origin: process.env.CLIENT_API, methods: ["GET", "POST"] },
 });
 
 httpServer.listen(process.env.PORT, () =>
